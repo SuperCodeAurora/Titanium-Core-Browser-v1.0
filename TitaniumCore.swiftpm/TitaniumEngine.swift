@@ -1,72 +1,72 @@
 import SwiftUI
 import WebKit
 
-// 🛡️ TITANIUM ENGINE CORE
-// This is not a basic viewer. This is a delegate-driven WebKit engine.
 struct TitaniumWebView: UIViewRepresentable {
     @Binding var url: URL
 
     func makeUIView(context: Context) -> WKWebView {
-        // 1. Advanced Configuration
         let preferences = WKWebpagePreferences()
         preferences.allowsContentJavaScript = true
         
         let config = WKWebViewConfiguration()
         config.defaultWebpagePreferences = preferences
         
-        // 2. The "Manus" AI Bridge (Injecting our own code into the website)
+        // 🧠 THE MANUS PROTOCOL: Injecting the AI Extractor
+        // This JavaScript scrapes the website and sends it to our Swift Coordinator
         let agentScript = """
-        console.log('Titanium Core: DOM fully parsed. AI Agent standing by.');
-        // Future AI DOM-reading logic will go here.
+        function extractDataForAI() {
+            var rawText = document.body.innerText;
+            // Send the first 500 characters back to the iPad's Native Memory
+            window.webkit.messageHandlers.titaniumAgent.postMessage(rawText.substring(0, 500));
+        }
+        // Run it after 2 seconds
+        setTimeout(extractDataForAI, 2000);
         """
+        
         let script = WKUserScript(source: agentScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
         config.userContentController.addUserScript(script)
-
-        // 3. Engine Initialization
-        let webView = WKWebView(frame: .zero, configuration: config)
         
-        // 4. Pro Features
-        webView.navigationDelegate = context.coordinator // Links to our custom Brain
-        webView.allowsBackForwardNavigationGestures = true // "Mammoth" Swipe Gestures
-        webView.customUserAgent = "TitaniumCore/1.0 (iPad; AI-Native Engine)" // We are our own platform now
+        // 🔌 Wiring the bridge so Javascript can talk to Swift
+        config.userContentController.add(context.coordinator, name: "titaniumAgent")
+
+        let webView = WKWebView(frame: .zero, configuration: config)
+        webView.navigationDelegate = context.coordinator 
+        webView.allowsBackForwardNavigationGestures = true 
+        webView.customUserAgent = "TitaniumCore/2.0 (iPad; AI-Native Engine)" 
         
         return webView
     }
 
     func updateUIView(_ uiView: WKWebView, context: Context) {
-        let request = URLRequest(url: url)
-        // Prevent infinite reload loops (A common beginner mistake)
         if uiView.url != url && !uiView.isLoading {
-            uiView.load(request)
+            uiView.load(URLRequest(url: url))
         }
     }
 
-    // MARK: - The Brain (Coordinator)
-    // This allows Swift to "listen" to the website's events (loading, clicking, errors).
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
 
-    class Coordinator: NSObject, WKNavigationDelegate {
+    // 🛡️ THE COORDINATOR: Now equipped with WKScriptMessageHandler
+    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var parent: TitaniumWebView
 
         init(_ parent: TitaniumWebView) {
             self.parent = parent
         }
-
-        // Event: When the page starts loading
-        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-            print("⚙️ Titanium Engine: Engaging Hyperdrive for \(webView.url?.absoluteString ?? "Unknown URL")")
-        }
-
-        // Event: When the page finishes loading
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            print("✅ Titanium Engine: Page locked. Ready for user interaction.")
-        }
         
-        // Event: If the website crashes or fails
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            print("❌ Titanium Engine Error: \(error.localizedDescription)")
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            print("✅ Titanium Engine: Page locked.")
+        }
+
+        // 🚨 THE CRITICAL MOVE: Receiving data FROM the website
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            if message.name == "titaniumAgent" {
+                if let extractedText = message.body as? String {
+                    print("🤖 MANUS BRIDGE ACTIVATED. Extracted Data: \\n\\n\\(extractedText)...")
+                    // In the future, we will send this text directly to a local LLM!
+                }
+            }
         }
     }
 }
