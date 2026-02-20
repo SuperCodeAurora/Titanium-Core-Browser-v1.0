@@ -21,9 +21,7 @@ struct ContentView: View {
                     .ignoresSafeArea()
             }
 
-            // 1. 🚀 THE MAMMOTH MEMORY POOL (The Critical UI Upgrade)
-            // We load ALL tabs at once, but only make the active one visible.
-            // This guarantees instant, zero-reload tab switching.
+            // 1. 🚀 THE MAMMOTH MEMORY POOL (Instant Tab Switching)
             ZStack {
                 ForEach($tabManager.tabs) { $tab in
                     TitaniumWebView(url: $tab.url)
@@ -35,31 +33,55 @@ struct ContentView: View {
                 }
             }
 
-            // 2. THE COMMAND CENTER (Same as before)
+            // 2. THE COMMAND CENTER
             VStack(spacing: 12) {
+                
+                // --- THE TAB BAR ---
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack {
+                    HStack(spacing: 10) {
                         ForEach(tabManager.tabs) { tab in
-                            Button(action: { tabManager.activeTabId = tab.id }) {
-                                Text(tab.url.host ?? "New Tab")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .background(tabManager.activeTabId == tab.id ? Color.blue : Color.gray.opacity(0.3))
-                                    .foregroundColor(.white)
-                                    .cornerRadius(20)
+                            HStack {
+                                // The Tab Name Button
+                                Button(action: { tabManager.activeTabId = tab.id }) {
+                                    Text(tab.url.host ?? "New Tab")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .lineLimit(1)
+                                        .frame(maxWidth: 120) // Prevents long URLs from breaking the UI
+                                }
+                                
+                                // 🚨 THE CLOSE BUTTON 🚨
+                                // Only show the 'X' if there is more than 1 tab open
+                                if tabManager.tabs.count > 1 {
+                                    Button(action: { 
+                                        withAnimation {
+                                            tabManager.closeTab(id: tab.id) 
+                                        }
+                                    }) {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.white.opacity(0.7))
+                                    }
+                                }
                             }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            // Highlight the active tab in Titanium Blue
+                            .background(tabManager.activeTabId == tab.id ? Color.blue : Color.gray.opacity(0.3))
+                            .foregroundColor(.white)
+                            .cornerRadius(20)
                         }
                     }
                     .padding(.horizontal)
                 }
                 
+                // --- THE ADDRESS BAR ---
                 HStack {
+                    // Theme Toggle
                     Button(action: { themeManager.toggleTheme() }) {
                         Image(systemName: themeManager.isDarkMode ? "moon.fill" : "sun.max.fill")
                             .foregroundColor(.blue)
                     }
                     
+                    // URL Input
                     TextField("Titanium Search", text: $addressText)
                         .onSubmit { loadPage() }
                         .keyboardType(.URL)
@@ -68,13 +90,15 @@ struct ContentView: View {
                         .background(Color.white.opacity(0.15))
                         .cornerRadius(12)
                     
+                    // Background Image Uploader
                     Button(action: { showingImagePicker = true }) {
                         Image(systemName: "photo.on.rectangle")
                             .font(.title2)
                             .foregroundColor(.blue)
                     }
                     
-                    Button(action: { tabManager.createNewTab(url: "https://www.github.com") }) {
+                    // New Tab Button
+                    Button(action: { tabManager.createNewTab(url: "https://www.apple.com") }) {
                         Image(systemName: "plus.app.fill")
                             .font(.title)
                             .foregroundColor(.blue)
@@ -93,7 +117,7 @@ struct ContentView: View {
         }
         .onAppear {
             addressText = tabManager.activeURL?.absoluteString ?? ""
-         }
+        }
         .sheet(isPresented: $showingImagePicker) {
             ImagePicker(image: $themeManager.backgroundImage)
         }
